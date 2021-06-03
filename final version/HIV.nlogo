@@ -244,26 +244,40 @@ end
 to infect  ;; turtle procedure
   ifelse coupled? and random 100 < engagement-chance and not(onWeekEngagement?)
   [
-    ifelse (infected? and not known?) or ([infected?] of partner and not([known?] of partner))
+    ifelse criminal? or [criminal?] of partner
     [
-      if random-float 10 > condom-use or random-float 10 > ([condom-use] of partner)
-        [ if random-float 100 < infection-chance
+      ifelse criminal?
+      [ask partner [set infected? true]]
+      [set infected? true]
+    ]
+    [
+      if infected? or [infected?] of partner
+      [
+        ifelse known? or [known?] of partner
+        [
+          if random 100 > condom-effectiveness
+          [
+            ifelse infected?
+            [ask partner [ set infected? true ]]
+            [set infected? true]
+          ]
+        ]
+        [
+          if random-float 10 > condom-use or random-float 10 > ([condom-use] of partner)
+          [ if random-float 100 < infection-chance
             [
               ifelse infected?
               [ask partner [ set infected? true ]]
               [ set infected? true ]
             ]
+          ]
         ]
-    ]
-    [
-      if criminal? [ask partner [ set infected? true ]]
-      if [criminal?] of partner [set infected? true]
+      ]
     ]
     ask (patch-at 0 0) [ set pcolor pink - 1]
     ask partner [ask (patch-at 0 0) [set pcolor pink - 1]]
     set onWeekEngagement? true
     ask partner [set onWeekEngagement? true]
-    ;show ;engagement-chance
   ]
   [
     if coupled? and not(onWeekEngagement?)
@@ -402,7 +416,7 @@ initial-people
 initial-people
 50
 500
-300.0
+82.0
 1
 1
 NIL
@@ -447,7 +461,7 @@ average-condom-use
 average-condom-use
 0
 10
-10.0
+8.0
 1
 1
 NIL
@@ -527,7 +541,7 @@ engagement-chance
 engagement-chance
 0
 100
-100.0
+17.0
 1
 1
 NIL
@@ -560,7 +574,7 @@ PLOT
 217
 948
 367
-Couples
+Coupled people
 weeks
 Couples
 0.0
@@ -582,7 +596,7 @@ criminal-chance
 criminal-chance
 0
 100
-0.0
+6.0
 1
 1
 NIL
@@ -607,9 +621,9 @@ SLIDER
 condom-effectiveness
 condom-effectiveness
 0
-10
-1.0
-0.5
+100
+100.0
+1
 1
 NIL
 HORIZONTAL
