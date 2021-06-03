@@ -1,10 +1,14 @@
 globals [
+  ;;--------------------------------------------------------------------------------------
+  ;;------------------------------- Modificacions ----------------------------------------
   slider-check-5
   slider-check-6
   slider-check-7
   slider-check-8
   slider-check-9
-  ;;-----------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
+
   ;infection-chance  ;; The chance out of 100 that an infected person will pass on
                     ;;   infection during one week of couplehood.
   ;symptoms-show     ;; How long a person will be infected before symptoms occur
@@ -16,10 +20,14 @@ globals [
 ]
 
 turtles-own [
+  ;;--------------------------------------------------------------------------------------
+  ;;------------------------------- Modificacions ----------------------------------------
   male
   criminal?
   onWeekEngagement?
-  ;;-----------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
+
   infected?          ;; If true, the person is infected.  It may be known or unknown.
   known?             ;; If true, the infection is known (and infected? must also be true).
   infection-length   ;; How long the person has been infected.
@@ -52,12 +60,15 @@ to setup-globals
   set slider-check-2 average-coupling-tendency
   set slider-check-3 average-condom-use
   set slider-check-4 average-test-frequency
-  ;--------------------------------------------
+  ;;--------------------------------------------------------------------------------------
+  ;;------------------------------- Modificacions ----------------------------------------
   set slider-check-5 infection-chance
   set slider-check-6 symptoms-show
   set slider-check-7 engagement-chance
   set slider-check-8 criminal-chance
   set slider-check-9 condom-effectiveness
+  ;;--------------------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
 end
 
 ;; Create carrying-capacity number of people half are righty and half are lefty
@@ -76,11 +87,13 @@ to setup-people
       set infected? (who < initial-people * 0.025)
       if infected?
         [ set infection-length random-float symptoms-show ]
-      ;;-----------------------------------------------------------------------------
+      ;;--------------------------------------------------------------------------------------
+      ;;------------------------------- Modificacions ----------------------------------------
       set male random 2 = 0
       set criminal? false
       set onWeekEngagement? false
-      ;;-----------------------------------------------------------------------------
+      ;;--------------------------------------------------------------------------------------
+      ;;--------------------------------------------------------------------------------------
       assign-commitment
       assign-coupling-tendency
       assign-condom-use
@@ -99,7 +112,11 @@ to assign-color  ;; turtle procedure
     [ ifelse known?
       [ set color red ]
       [ set color blue ] ]
+  ;;--------------------------------------------------------------------------------------
+  ;;------------------------------- Modificacions ----------------------------------------
   if criminal? [ set color violet ]
+  ;;--------------------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
 end
 
 ;; The following four procedures assign core turtle variables.  They use
@@ -138,9 +155,11 @@ to go
   if all? turtles [known?]
     [ stop ]
   check-sliders
-  ;----------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
+  ;;------------------------------- Modificacions ----------------------------------------
   ask turtles [set onWeekEngagement? false]
-  ;----------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
   ask turtles
     [ if infected?
         [ set infection-length infection-length + 1 ]
@@ -178,7 +197,8 @@ to check-sliders
     [ ask turtles [ assign-test-frequency ]
       set slider-check-4 average-test-frequency ]
 
-  ;---------------------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
+  ;;------------------------------- Modificacions ----------------------------------------
   if (slider-check-5 != infection-chance )
     [ set slider-check-5 infection-chance ]
   if (slider-check-6 != symptoms-show )
@@ -189,6 +209,8 @@ to check-sliders
     [ set slider-check-8 criminal-chance ]
   if (slider-check-9 != condom-effectiveness )
     [ set slider-check-9 condom-effectiveness ]
+  ;;--------------------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
 end
 
 ;; People move about at random.
@@ -204,7 +226,11 @@ end
 to couple  ;; turtle procedure -- righties only!
   let potential-partner one-of (turtles-at -1 0)
                           with [not coupled? and shape = "person lefty"]
+  ;;--------------------------------------------------------------------------------------
+  ;;------------------------------- Modificacions ----------------------------------------
   if potential-partner != nobody and male != [male] of potential-partner
+  ;;--------------------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------------------
     [ if random-float 10.0 < [coupling-tendency] of potential-partner
       [ set partner potential-partner
         set coupled? true
@@ -241,39 +267,18 @@ end
 ;; primitive to AND in the third line will make it such that if either person
 ;; wants to use a condom, infection will not occur.
 
+;;--------------------------------------------------------------------------------------
+;;------------------------------- Modificacions ----------------------------------------
+
 to infect  ;; turtle procedure
   ifelse coupled? and random 100 < engagement-chance and not(onWeekEngagement?)
   [
     ifelse criminal? or [criminal?] of partner
+    [criminal-treatment]
     [
-      ifelse criminal?
-      [ask partner [set infected? true]]
-      [set infected? true]
+      if infected? or [infected?] of partner [infected-treatment]
     ]
-    [
-      if infected? or [infected?] of partner
-      [
-        ifelse known? or [known?] of partner
-        [
-          if random 100 > condom-effectiveness
-          [
-            ifelse infected?
-            [ask partner [ set infected? true ]]
-            [set infected? true]
-          ]
-        ]
-        [
-          if random-float 10 > condom-use or random-float 10 > ([condom-use] of partner)
-          [ if random-float 100 < infection-chance
-            [
-              ifelse infected?
-              [ask partner [ set infected? true ]]
-              [ set infected? true ]
-            ]
-          ]
-        ]
-      ]
-    ]
+
     ask (patch-at 0 0) [ set pcolor pink - 1]
     ask partner [ask (patch-at 0 0) [set pcolor pink - 1]]
     set onWeekEngagement? true
@@ -288,6 +293,37 @@ to infect  ;; turtle procedure
   ]
 end
 
+to criminal-treatment
+  ifelse criminal?
+  [ask partner [set infected? true]]
+  [set infected? true]
+end
+
+to infected-treatment
+  ifelse known? or [known?] of partner [safe-engagement] ;; un dels dos infectats i ho sap, tot i així existeix la possibilitat de contagiar-se utilitzant protecció
+  [ ;;un dels dos infectat pero no ho sap
+    if random-float 10 > condom-use or random-float 10 > ([condom-use] of partner)
+          [ if random-float 100 < infection-chance
+            [
+              ifelse infected?
+              [ask partner [ set infected? true ]]
+              [ set infected? true ]
+            ]
+          ]
+  ]
+end
+
+to safe-engagement
+  if random 100 > condom-effectiveness and random-float 100 < infection-chance
+  [
+    ifelse infected?
+    [ask partner [ set infected? true ]]
+    [set infected? true]
+  ]
+end
+;;--------------------------------------------------------------------------------------
+;;--------------------------------------------------------------------------------------
+
 ;; People have a tendency to check out their health status based on a slider value.
 ;; This tendency is checked against a random number in this procedure. However, after being infected for
 ;; some amount of time called SYMPTOMS-SHOW, there is a 5% chance that the person will
@@ -298,14 +334,22 @@ to test  ;; turtle procedure
     [ if infected?
       [
         set known? true
+        ;;--------------------------------------------------------------------------------------
+        ;;------------------------------- Modificacions ----------------------------------------
         set criminal? random 100 < criminal-chance
+        ;;--------------------------------------------------------------------------------------
+        ;;--------------------------------------------------------------------------------------
       ]
     ]
   if infection-length > symptoms-show and not(known?)
     [ if random-float 100 < 5
       [
         set known? true
+        ;;--------------------------------------------------------------------------------------
+        ;;------------------------------- Modificacions ----------------------------------------
         set criminal? random 100 < criminal-chance
+        ;;--------------------------------------------------------------------------------------
+        ;;--------------------------------------------------------------------------------------
       ]
     ]
 end
@@ -320,6 +364,8 @@ to-report %infected
     [ report 0 ]
 end
 
+;;--------------------------------------------------------------------------------------
+;;------------------------------- Modificacions ----------------------------------------
 
 to-report %male
   ifelse any? turtles
@@ -332,6 +378,8 @@ to-report %female
     [ report (count turtles with [not(male)] / count turtles) * 100 ]
     [ report 0 ]
 end
+;;--------------------------------------------------------------------------------------
+;;--------------------------------------------------------------------------------------
 ; Copyright 1997 Uri Wilensky.
 ; See Info tab for full copyright and license.
 @#$#@#$#@
@@ -416,7 +464,7 @@ initial-people
 initial-people
 50
 500
-82.0
+500.0
 1
 1
 NIL
@@ -431,7 +479,7 @@ average-commitment
 average-commitment
 1
 200
-50.0
+30.0
 1
 1
 weeks
@@ -446,7 +494,7 @@ average-coupling-tendency
 average-coupling-tendency
 0
 10
-10.0
+5.0
 1
 1
 NIL
@@ -476,7 +524,7 @@ average-test-frequency
 average-test-frequency
 0
 2
-0.0
+1.0
 0.01
 1
 times/year
@@ -511,7 +559,7 @@ infection-chance
 infection-chance
 0
 100
-100.0
+75.0
 1
 1
 NIL
@@ -526,7 +574,7 @@ symptoms-show
 symptoms-show
 0
 400
-0.0
+50.0
 1
 1
 NIL
@@ -541,7 +589,7 @@ engagement-chance
 engagement-chance
 0
 100
-17.0
+60.0
 1
 1
 NIL
@@ -596,7 +644,7 @@ criminal-chance
 criminal-chance
 0
 100
-6.0
+2.0
 1
 1
 NIL
@@ -622,7 +670,7 @@ condom-effectiveness
 condom-effectiveness
 0
 100
-100.0
+95.0
 1
 1
 NIL
@@ -717,16 +765,16 @@ De les funcionalitats esmentades en aquest apartat, hem fet les següents:
 
 - Relacions per setmana
 El fet de que dues parejes estiguin juntes no significa que sempre mantiguin relacions,
-per tal de representar això hem fet que per cada setmana que una pareja està junta, hi hagi un percentatge de mantenir relacions sexuals, de tal manera que hi ha setmanes en que les parelles no fan res. Quan es mantenen relacions el fons de la parella es posa de color rosa claret una mica transparent. Aquesta part del codi es pot trobar en el mètode infect. La variable involucrada es engagement-chance, i es pot modificar en el slider.
+per tal de representar això hem fet que per cada setmana que una pareja està junta, hi hagi un percentatge de mantenir relacions sexuals, de tal manera que hi ha setmanes en que les parelles no fan res. Quan es mantenen relacions el fons de la parella es posa de color rosa claret una mica transparent. Aquesta part del codi es pot trobar en el mètode infect. La variable involucrada es engagement-chance, i es pot modificar en el slider. La variable onWeekEngagement? s'utilitza per a tactar cada parella només una vegada.
 
 - Representació de generes
-Al final hem decidit representar parelles heterosexuals en la simulació, de tal manera que només es poden formar parelles entre persones de diferent gènere (no es fa amb l'objectiu de discriminar altres possibles gèneres o tipus de relacions). Aquesta part es pot trobar en el mètode couple. A més, per representar el gènere en cada persona, s'afegeix un atribut male? que indica si es home o dona.
+Al final hem decidit representar parelles heterosexuals en la simulació, de tal manera que només es poden formar parelles entre persones de diferent gènere (no es fa amb l'objectiu de discriminar altres possibles gèneres o tipus de relacions). Aquesta part es pot trobar en el mètode couple. A més, per representar el gènere en cada persona, s'afegeix un atribut male que indica si es home o dona.
 
 - Comportament davant l'infecció
-S'han donat casos de persones que quan s'adonen de que tenen el virus del HIV, comencen a contagiar a més gent a propòsit i sense cap motiu aparent. Per això hem decidit representar aquest tipus de persones en el model, amb un nou atribut criminal a les persones. Una persona es pot convertir en criminal amb una certa probabilitat quan s'adona de que està contagiat. Per tant, aquest comportament es dona en el mètode test. Hem asumit que aquestes persones s'espabilen per aconseguir tenir relacions sense preservatiu amb la seva parella, de tal manera que s'infecta segur. Per tal de poder identificar aquestes persones de forma gràfica, s'els ha assignat el color purpura en la simulació.
+S'han donat casos de persones que quan s'adonen de que tenen el virus del HIV, comencen a contagiar a més gent a propòsit i sense cap motiu aparent. Per això hem decidit representar aquest tipus de persones en el model, amb un nou atribut criminal a les persones. Una persona es pot convertir en criminal amb una certa probabilitat quan s'adona de que està contagiat. Per tant, aquest comportament es dona en el mètode test, infect i criminal-treatment. Hem asumit que aquestes persones s'espabilen per aconseguir tenir relacions sense preservatiu amb la seva parella, de tal manera que s'infecta segur. Per tal de poder identificar aquestes persones de forma gràfica, s'els ha assignat el color purpura en la simulació.
 
 - Efectivitat del preservatiu
-El model inicial posaba com a hipotesis que si dos persones mantenen relacions amb preservatiu, mai es podrien contagiar, assumint que el preservatiu és un mètode segur. Per tal de representar una mica la realitat de que això no es cert, hem fet que si les dos persones encara que utilitzin preservatiu, hi hagi un cert percentatge de contagi. Evidentment, això només ocorre quan es mantenen relacions. Aquesta part del codi es pot trobar dins del mètode infect.
+El model inicial posaba com a hipotesis que si dos persones mantenen relacions amb preservatiu, mai es podrien contagiar, assumint que el preservatiu és un mètode segur. Per tal de representar una mica la realitat de que això no es cert, hem fet que si les dos persones encara que utilitzin preservatiu, hi hagi un cert percentatge de contagi. Evidentment, això només ocorre quan es mantenen relacions. Aquesta part del codi es pot trobar dins del mètode infect, infected-treatment i safe-engagement.
 
 - Canvis en les variables symptoms-show i infection-chance
 En el model inicial, aquestes variables estaven hard-coded, tal i com ens recomana l'ultima part del extending model, per tal de poder fer un estudi de la influencia d'aquestes variables hem decidit convertir-les en sliders (com les altres variables), aixi es pot fer una prova més senzilla. La configuració d'aquestes variables la podem trobar en l'apartat globals (al principi de tot el codi) i el mètode setup-globals.
